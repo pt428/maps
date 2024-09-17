@@ -1,0 +1,74 @@
+ 
+.App{
+  text-align: center;
+}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.dropdown-menu{
+  width: 20rem;
+}
+i{
+  cursor: pointer;
+}
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+#root{
+  height: 100vh;
+}
+.leaflet-container{
+  height: 100vh;
+}
+.cluster-bts-icon{
+  
+  font-size: 0.9rem;
+  height: 4rem;
+  width: 4rem;
+  border-radius: 50%;
+  background-color: rgb(238, 10, 17);
+  color: white;
+  transform: translate(-12%,-12%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.cluster-icon{
+   
+  font-size: 1rem;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 50%;
+  background-color: rgb(5, 187, 248);
+  transform: translate(-15%,-15%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loader {
+  border: 16px solid #f3f3f3; /* Světle šedé */
+  border-top: 16px solid #3498db; /* Modré */
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
+  margin: 0 auto; /* Zarovnání do středu */
+ 
+  
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.load-spinner{
+  height: 50rem;
+}
