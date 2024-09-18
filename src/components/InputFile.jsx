@@ -3,24 +3,23 @@ import Papa from "papaparse";
 import { format } from "date-fns";
 import cs from "date-fns/locale/cs";
 import GPXParser from "gpxparser";
-import gpxJsonDemo from "../data/GpxDemoData.json";
-import csvJsonDemo from "../data/CsvDemoData.json";
 import dayjs from "dayjs";
- 
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 function InputFile({
-  handleMarkers,//NEW MARKERS 
-  markersData,//IDs OF ALL MARKERS
-  handlaChange,// CHANGE DATA FOR SHOW
-  handleClickHint,//  SHOW HINT FOR DEMO
+  handleMarkers, //NEW MARKERS
+  
+  handlaChange, // CHANGE DATA FOR SHOW
 }) {
-  const [gpxDemo, setGpxDemo] = useState(gpxJsonDemo.gpxData); //GPX DATA FOR DEMO FROM JSON
-  const [csvDemo, setCsvDemo] = useState(csvJsonDemo.csvData); //CSV DATA FOR DEMO FROM JSON
-  const [newMarkers, setNewMarkers] = useState(null); //NEW MARKERS FROM FILES
-  const [csvData, setCsvData] = useState(null); //CSV DATA FROM FILE OR DATABASE
-  const [gpxData, setGpxData] = useState(null); //GPX DATA FROM FILE OR DATABASE
-  const [showBtnDisabled, setShowBtnDisabled] = useState(1); // BTN FOR MERGE DATA ACTIVE/DEACTIVE
-
+  const dispatch = useDispatch();
+  const gpxDemo = useSelector((state) => state.gpxDemo);
+  const csvDemo = useSelector((state) => state.csvDemo);
+  const newMarkers = useSelector((state) => state.newMarkers);
+  const csvData = useSelector((state) => state.csvData); //CSV DATA FROM FILE OR DATABASE
+  const gpxData = useSelector((state) => state.gpxData); //GPX DATA FROM FILE OR DATABASE
+  const showBtnDisabled = useSelector((state) => state.showBtnDisabled); // BTN FOR MERGE DATA ACTIVE/DEACTIVE
+  const  markersData   = useSelector((state) => state.markersReduceById);//IDs OF ALL MARKERS
   //*************  HANDLE DATA BUTTON CLICK FROM LIST ****************/
 
   const handleDataClick = (id, command) => {
@@ -44,7 +43,7 @@ function InputFile({
               const formattedDate = dayjs(date).format("D. M. YYYY HH:mm:ss");
               return [formattedDate, ...row.slice(0)];
             });
-          setCsvData(filteredData);
+          dispatch({ type: "SET_CSV_DATA", payload: filteredData });
         },
         error: (error) => {
           console.error("Error parsing CSV:", error);
@@ -58,7 +57,8 @@ function InputFile({
   const handleFileUploadGpx = (event) => {
     const file = event.target.files[0];
     if (file) {
-      setShowBtnDisabled(0);
+      dispatch({ type: "SET_SHOW_BTN_DISABLE", payload: false });
+      //setShowBtnDisabled(0);
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target.result;
@@ -78,8 +78,7 @@ function InputFile({
               time: formattedDate.toLocaleString(),
             };
           });
-
-          setGpxData(formattedData);
+          dispatch({ type: "SET_GPX_DATA", payload: formattedData });
         } else {
           console.log("No track data found in the file");
         }
@@ -120,16 +119,15 @@ function InputFile({
       lat: data.lat || 0,
       lon: data.lon || 0,
     }));
-
-    setNewMarkers(markers);
-    setShowBtnDisabled(1);
+    dispatch({ type: "SET_NEW_MARKERS", payload: markers });
+    dispatch({ type: "SET_SHOW_BTN_DISABLE", payload: true });
+    //setShowBtnDisabled(1);
   };
   //************* HANDLE CLICK BUTTON FROM FILE INPUT ****************/
 
   const handleClick = (id) => {
     if (gpxData && csvData) {
-      mergeData(id,gpxData,csvData);
-      
+      mergeData(id, gpxData, csvData);
     } else {
       alert("Vložte oba soubory");
     }
@@ -139,8 +137,10 @@ function InputFile({
 
   const handleClickDemo = (id) => {
     if (gpxDemo && csvDemo) {
-      mergeData(id,gpxDemo,csvDemo);      
-      handleClickHint(true);
+      mergeData(id, gpxDemo, csvDemo);
+
+      dispatch({ type: "MENU", payload: false });
+      dispatch({ type: "SET_SHOW_HINT", payload: true });
     }
   };
 
@@ -162,8 +162,7 @@ function InputFile({
 
   useEffect(() => {
     if (newMarkers) {
-      // console.log("newMarkers");
-      // console.log(newMarkers);
+     
       return handleMarkers(newMarkers);
     }
   }, [newMarkers]);
@@ -286,7 +285,7 @@ function InputFile({
           {/* BUTTON FOR MERGE GPX AND CSV DATA */}
           <li>
             <button
-              disabled={showBtnDisabled === 1}
+              disabled={showBtnDisabled}
               className="btn btn-success mt-1 w-100"
               onClick={handleClick}
             >

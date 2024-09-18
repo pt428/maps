@@ -3,10 +3,9 @@ import {
   TileLayer,
   Marker,
   Popup,
-  Polyline,
-  useMap,
+  Polyline,  
 } from "react-leaflet";
-import { useEffect, useState } from "react";
+import { useEffect} from "react";
 import "leaflet/dist/leaflet.css";
 import "./App.css";
 import { Icon, divIcon, point } from "leaflet";
@@ -14,32 +13,33 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import axios from "axios";
 import InputFile from "./components/InputFile";
 import btsAll from "./data/BTS_CZ_ALL.json";
-import { Collapse, Button, Card } from "react-bootstrap";
+import { Collapse} from "react-bootstrap";
 import RangeSlider from "./components/RangeSlider";
 import CheckBox from "./components/CheckBox";
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 function App() {
   const polylineStyle = {
     color: "blue",
     weight: 3,
   };
-  const [open, setOpen] = useState(false); // STATE OF MENU OPEN/CLOSE
-  const [allCzBts, setAllCzBts] = useState(null); //ALL CZ BTS DATA
-  const [forceUpdate, setForceUpdate] = useState(false); //FORCE UPDATE INFO ABOUT DATE AFTER CHANGE DATA FROM THE LIST
-  const [showByOne, setShowByOne] = useState(false); //SHOW ALL/ONE BY POINTS ON THE MAP
-  const [showHint, setShowHint] = useState(false); // SHOW HINT FOR DEMO
-  const [loading, setLoading] = useState(true); // LOADING BTS
-
-  const [actualDate, setActualDate] = useState(""); //INFO ABOUT DATE OF ACTUAL POINT ON MAP
-  const [actualCid, setActualCid] = useState(""); //INFO ABOUT BTS CID OF ACTUAL POINT ON MAP
-  const [rangeValue, setRangeValue] = useState(0); // RANGE FOR MOVING OBJECT ON THE MAP
-  const [btsToShow, setBtsToShow] = useState(null);
-  const [markers, setMarkers] = useState([]); // ALL MARKERS FROM DATABASE
-  const [markersReduceById, setMarkersReduceById] = useState();
-  const [markersToShow, setMarkersToShow] = useState(null); //MARKERS FOR SHOW ON THE MAP
-  const [markersToShowRange, setMarkersToShowRange] = useState();//MARKERS FOR SHOW, ONLY IN ACTUAL RANGE
-  const [polylinePoints, setPolylinePoints] = useState();
-
+ 
+  const dispatch = useDispatch();
+  const stateOfMenu = useSelector((state) => state.stateOfMenu);
+  const forceUpdate = useSelector((state) => state.forceUpdate); //FORCE UPDATE INFO ABOUT DATE AFTER CHANGE DATA FROM THE LIST
+  const showByOne = useSelector((state) => state.showByOne); //SHOW ALL/ONE BY POINTS ON THE MAP
+  const allCzBts = useSelector((state) => state.allCzBts); //ALL CZ BTS DATA
+  const showHint = useSelector((state) => state.showHint); // SHOW HINT FOR DEMO
+  const loading = useSelector((state) => state.loadingBts); // LOADING BTS
+  const actualCid = useSelector((state) => state.actualCid); //INFO ABOUT BTS CID OF ACTUAL POINT ON MAP
+  const actualDate = useSelector((state) => state.actualDate); //INFO ABOUT DATE OF ACTUAL POINT ON MAP
+  const rangeValue = useSelector((state) => state.rangeValue); // RANGE FOR MOVING OBJECT ON THE MAP
+  const btsToShow = useSelector((state) => state.btsToShow);
+  const markers = useSelector((state) => state.markers); // ALL MARKERS FROM DATABASE
+  const markersToShow = useSelector((state) => state.markersToShow); //MARKERS FOR SHOW ON THE MAP
+  const markersToShowRange = useSelector((state) => state.markersToShowRange); //MARKERS FOR SHOW, ONLY IN ACTUAL RANGE
+  const polylinePoints = useSelector((state) => state.polylinePoints);
 
   //*************  MAP POINT ICON ****************/
   const customIcon = new Icon({
@@ -74,9 +74,13 @@ function App() {
       _id: maxId + 1,
       saved: 0,
     }));
-    
-    setMarkers([...markers, ...updatedMarkers]);
-    setMarkersToShow(updatedMarkers);
+    dispatch({ type: "SET_MARKERS", payload: [...markers, ...updatedMarkers] });
+  
+    dispatch({
+      type: "SET_MARKERS_TO_SHOW",
+      payload: updatedMarkers,
+    });
+     
     const filteredBts = allCzBts
       .filter((bts) => {
         return newMarkerFiltered.some((marker) => marker.CID === bts.id);
@@ -88,18 +92,20 @@ function App() {
         );
 
         return {
-          ...oneBts, //SPREAD THE EXISTING BTS  
+          ...oneBts, //SPREAD THE EXISTING BTS
           info: [
             matchingMarker ? { ...matchingMarker } : null, //ADD matchingMarker AS NEW ENTRY IF IT EXIST
           ],
         };
       });
-    if (rangeValue == 1) {
-      setForceUpdate((prev) => !prev);
+
+    if (rangeValue === 1) {
+      dispatch({ type: "FORCEUPDATE" });
     } // FORCE UPDATE - DATE OF SELECTED MARKERS
-    //setOpen(false);
-    setRangeValue(1);
-    setBtsToShow(filteredBts);
+   
+    dispatch({ type: "SET_RANGE_VALUE", payload: 1 });    
+    dispatch({ type: "SET_BTS_TO_SHOW", payload: filteredBts });
+   
   };
 
   //************* DELETE, SHOW, SAVE MARKERS FROM LIST ****************/
@@ -111,21 +117,31 @@ function App() {
         .delete(`https://pavel-tichy.cz/projects/maps/server/${id}`)
         .then((response) => {
           alert("Log úspěšně smazán.");
-          setMarkersToShow(null);
+          dispatch({
+            type: "SET_MARKERS_TO_SHOW",
+            payload: null,
+          });
+          //setMarkersToShow(null);
         })
         .catch((error) => {
           console.error("There was an error!", error);
         });
       const updatedMarkers = markers.filter((marker) => marker._id !== id);
+      dispatch({
+        type: "SET_MARKERS",
+        payload: updatedMarkers,
+      });
      
-      setMarkers(updatedMarkers);
-       
       //setOpen(false); //CLOSE MENU
 
       // ********* SHOW *****************
     } else if (command === "show") {
       const toShow = markers.filter((markers) => markers._id === id);
-      setMarkersToShow(toShow);
+      dispatch({
+        type: "SET_MARKERS_TO_SHOW",
+        payload: toShow,
+      });
+      
 
       const filteredBts = allCzBts
         .filter((bts) => {
@@ -145,11 +161,12 @@ function App() {
           };
         });
       if (rangeValue === 1) {
-        setForceUpdate((prev) => !prev);
+        dispatch({ type: "FORCEUPDATE" });
       }
       //setOpen(false);//CLOSE MENU
-      setRangeValue(1);//RESET RANGE
-      setBtsToShow(filteredBts);
+      dispatch({ type: "SET_RANGE_VALUE", payload: 1 });
+            dispatch({ type: "SET_BTS_TO_SHOW", payload: filteredBts });
+      
 
       // ********* SAVE *****************
     } else if (command === "save") {
@@ -177,10 +194,12 @@ function App() {
         // OR RETURN MARKERS WITHOUT CHANGES
         return marker;
       });
-      setMarkers(updatedMarkers);
-      //setOpen(false); //CLOSE MENU
+      dispatch({
+        type: "SET_MARKERS",
+        payload: updatedMarkers,
+      });
+    
     }
-
   };
 
   //*************  GET ALL MARKERS FROM DATABASE ****************/
@@ -192,7 +211,6 @@ function App() {
       )
       .then((response) => {
         if (Array.isArray(response.data)) {
-     
           // CONVERT LAT AND LON TO NUMBER
           const markersWithNumbers = response.data.map((marker) => ({
             ...marker,
@@ -200,9 +218,11 @@ function App() {
             lon: parseFloat(marker.lon),
             id: -1,
           }));
-          setMarkers(markersWithNumbers);
-          
-         
+          dispatch({
+            type: "SET_MARKERS",
+            payload: markersWithNumbers,
+          });
+       
         } else {
           console.error("Odpověď serveru není pole.");
         }
@@ -215,7 +235,8 @@ function App() {
 
   //*************  USE EFFECTS ****************/
 
-  useEffect(() => {//MAKE LIST OF IDs OF MARKERS FOR SHOW IDs ON THE LIST OF LOGS
+  useEffect(() => {
+    //MAKE LIST OF IDs OF MARKERS FOR SHOW IDs ON THE LIST OF LOGS
     if (markers) {
       const filteredMarks = markers.reduce(
         (acc, mark) => {
@@ -227,57 +248,73 @@ function App() {
         },
         { result: [], seenIds: new Set() }
       ).result;
-
-      setMarkersReduceById(filteredMarks);
+      dispatch({
+        type: "SET_MARKERS_REDUCE_BY_ID",
+        payload: filteredMarks,
+      });
+     
     }
   }, [markers]);
 
- 
-
   useEffect(() => {
-    getMarkers();// GET MARKERS FROM DATABASE
+    getMarkers(); // GET MARKERS FROM DATABASE
   }, []);
 
   useEffect(() => {
-     
     // LOAD ALL BTS DATA FROM JSON
     const fetchData = async () => {
-      setLoading(true); //  SHOW LOADING WINDOW
-      setAllCzBts(btsAll.btsCz); //  
-      setLoading(false); //  CLOSE LOADING
+      dispatch({ type: "SET_LOADING_BTS", payload: true });    
+      dispatch({ type: "SET_ALL_CZ_BTS", payload: btsAll.btsCz });     
+      dispatch({ type: "SET_LOADING_BTS", payload: false });     
     };
-
-    fetchData(); //  
+    fetchData(); //
   }, []);
 
-  useEffect(() => {//UPDATE ACTUAL DATA ON MAP
-    let tempMarker =markersToShow && markersToShow.slice(rangeValue - 1, rangeValue);//SHOW POINTS BY ONE
+  useEffect(() => {
+    //UPDATE ACTUAL DATA ON MAP
+    let tempMarker =
+      markersToShow && markersToShow.slice(rangeValue - 1, rangeValue); //SHOW POINTS BY ONE
     if (showByOne) {
     } else {
-      tempMarker = markersToShow && markersToShow.slice(0, rangeValue);//SHOW ALL ACTUAL POINTS
+      tempMarker = markersToShow && markersToShow.slice(0, rangeValue); //SHOW ALL ACTUAL POINTS
     }
-
-    const tempBts = btsToShow &&
+    const tempBts =
+      btsToShow &&
       btsToShow.filter(
-      (one) =>
-        one.id ===
-        (tempMarker && tempMarker.length > 0 ? tempMarker[tempMarker.length - 1]["CID"] : "")
-    );
- 
+        (one) =>
+          one.id ===
+          (tempMarker && tempMarker.length > 0
+            ? tempMarker[tempMarker.length - 1]["CID"]
+            : "")
+      );
 
-    if ( tempBts && tempBts.length > 0 && tempMarker.length > 0) {
-      setPolylinePoints([//SET POLYLINES BTS-ACTUAL POINT
-        [
-          tempMarker[tempMarker.length - 1]["lat"],
-          tempMarker[tempMarker.length - 1]["lon"],
+    if (tempBts && tempBts.length > 0 && tempMarker.length > 0) {
+      dispatch({
+        type: "SET_POLYLINEPOINTS",
+        payload: [
+          //SET POLYLINES BTS-ACTUAL POINT
+          [
+            tempMarker[tempMarker.length - 1]["lat"],
+            tempMarker[tempMarker.length - 1]["lon"],
+          ],
+          [tempBts[0].gps.lat, tempBts[0].gps.lon],
         ],
-        [tempBts[0].gps.lat, tempBts[0].gps.lon],
-      ]);
-      setActualDate(tempMarker[tempMarker.length - 1]["date"]);
-      setActualCid("CID: " + tempMarker[tempMarker.length - 1]["CID"]);
-    } 
+      });
 
-    setMarkersToShowRange(tempMarker);
+      dispatch({
+        type: "SET_ACTUAL_DATE",
+        payload: tempMarker[tempMarker.length - 1]["date"],
+      });
+      dispatch({
+        type: "SET_ACTUAL_CID",
+        payload: "CID: " + tempMarker[tempMarker.length - 1]["CID"],
+      });
+    }
+    dispatch({
+      type: "SET_MARKERS_TO_SHOW_RANGE",
+      payload: tempMarker,
+    });
+ 
   }, [rangeValue, showByOne, forceUpdate]);
 
   useEffect(() => {}, [polylinePoints]);
@@ -305,9 +342,11 @@ function App() {
             <div className="col-sm-2 d-flex">
               <button
                 className="btn btn-outline-secondary"
-                onClick={() => setOpen(!open)} // MENU OPEN/CLOSE
+                onClick={() =>
+                  dispatch({ type: "MENU", payload: !stateOfMenu })
+                } // MENU OPEN/CLOSE
                 aria-controls="collapse-menu"
-                aria-expanded={open}
+                aria-expanded={stateOfMenu}
               >
                 <i className="bi bi-list d-sm-none d-xs-block"></i>
                 <span className="d-none d-sm-block">Menu</span>
@@ -321,34 +360,18 @@ function App() {
                 </span>
               </div>
               <div className="d-flex justify-content-center  ">
-                <RangeSlider
-                  numberOfMarkers={markersToShow ? markersToShow.length : 0}
-                  onValueChange={(value) => setRangeValue(value)}
-                  onClick={(value) => setShowHint(value)}
-                  value={rangeValue}
-                ></RangeSlider>
+                <RangeSlider></RangeSlider>
               </div>
               {/* HINT FOR DEMO */}
               <div style={{ position: "relative" }}>
                 {showHint && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "0px",
-                      left: "0",
-                      right: "0",
-                      padding: "10px",
-                      backgroundColor: "lightyellow",
-                      border: "1px solid #ccc",
-                      zIndex: 1000,
-                      textAlign: "center",
-                      width: "20rem",
-                    }}
-                  >
+                  <div className="hintDiv"  >
                     <div className="d-flex justify-content-start">
                       <i
                         className="bi bi-x-square"
-                        onClick={() => setShowHint(false)}
+                        onClick={() =>
+                          dispatch({ type: "SET_SHOW_HINT", payload: false })
+                        }
                       ></i>
                     </div>
 
@@ -366,23 +389,17 @@ function App() {
             {/* /RANGE FOR TIME LINE */}
           </div>
           {/* ALL BUTTONS  */}
-          <Collapse in={open}>
+          <Collapse in={stateOfMenu}>
             <div id="collapse-menu">
               <div className="row justify-content-sm-center m-2  ">
                 <div className="col-12 col-xxl-9">
                   <InputFile
                     handleMarkers={handleNewMarkers}
-                    markersData={markersReduceById}
                     handlaChange={handleChangeMarkers}
-                    handleClickHint={(value) => setShowHint(value)}
                   ></InputFile>
                 </div>
                 <div className="col-sm-12 col-xs-6 col-xxl-3 ">
-                  <CheckBox
-                    onValueChange={(value) => setShowByOne(value)}
-                    value={showByOne}
-                    onClick={(value) => setOpen(value)}
-                  ></CheckBox>
+                  <CheckBox></CheckBox>
                 </div>
               </div>
             </div>
