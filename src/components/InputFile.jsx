@@ -233,16 +233,16 @@ function InputFile({
       </div>
 
       {/* INPUT EXTERNAL FILES */}
-      <div class="dropdown col-md-4">
+      <div className="dropdown col-md-4">
         <button
-          class="btn btn-secondary dropdown-toggle w-100"
+          className="btn btn-secondary dropdown-toggle w-100"
           type="button"
           data-bs-toggle="dropdown"
           aria-expanded="false"
         >
           Vybrat soubory
         </button>
-        <ul class="dropdown-menu ">
+        <ul className="dropdown-menu ">
           {/* INPUT FOR CSV FILE */}
           <li>
             <div className=" p-1 border border-secondary   rounded-1">

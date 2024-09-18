@@ -24,90 +24,22 @@ function App() {
     weight: 3,
   };
   const [open, setOpen] = useState(false); // STATE OF MENU OPEN/CLOSE
-  const [actualDate, setActualDate] = useState(""); //INFO ABOUT DATE OF ACTUAL POINT ON MAP
-  const [actualCid, setActualCid] = useState(""); //INFO ABOUT BTS CID OF ACTUAL POINT ON MAP
   const [allCzBts, setAllCzBts] = useState(null); //ALL CZ BTS DATA
-  const [loading, setLoading] = useState(true); // LOADING BTS
-  const [rangeValue, setRangeValue] = useState(); // RANGE FOR MOVING OBJECT ON THE MAP
-  const [btsToShow, setBtsToShow] = useState([
-    //DEFAULT DATA AFTER FIRST START OF APP
-    {
-      id: "909491:83",
-      gps: {
-        lon: "18.448802777778",
-        lat: "49.546391666667",
-      },
-      info: [
-        {
-          0: {
-            id: -1,
-            _id: 3,
-            date: "30. 8. 2024 18:20",
-            lat: 49.58005847,
-            lon: 18.40509384,
-            MCC_MNC: "23002",
-            LAC: "1714",
-            CID: "909491:83",
-            TYP: "LTE",
-            RSRP: "-106",
-            saved: 1,
-          },
-          1: {
-            id: -1,
-            _id: 3,
-            date: "30. 8. 2024 18:24",
-            lat: 49.57997121,
-            lon: 18.40505999,
-            MCC_MNC: "23002",
-            LAC: "1714",
-            CID: "909491:83",
-            TYP: "LTE",
-            RSRP: "-106",
-            saved: 1,
-          },
-        },
-      ],
-    },
-  ]);
-  const [markersId, setMarkersId] = useState([]); //ID FOR NEXT MARKERS
-  const [markers, setMarkers] = useState([]); // ALL MARKERS FROM DATABASE
-  const [markersFiltredData, setMarkersFiltredData] = useState();
-  const [tempMarkersToShow, setTempMarkersToShow] = useState([
-    //ONLY FOR FIRST START OF APP
-    {
-      _id: 3,
-      date: "30. 8. 2024 18:24",
-      lat: 49.45997121,
-      lon: 18.40505999,
-      MCC_MNC: "23002",
-      LAC: "1714",
-      CID: "909491:83",
-      TYP: "LTE",
-      RSRP: "-106",
-    },
-    {
-      _id: 3,
-      date: "30. 8. 2024 18:20",
-      lat: 49.58005847,
-      lon: 18.40509384,
-      MCC_MNC: "23002",
-      LAC: "1714",
-      CID: "909491:83",
-      TYP: "LTE",
-      RSRP: "-106",
-    },
-  ]);
-  const [markersToShow, setMarkersToShow] = useState(tempMarkersToShow); //MARKERS FOR SHOW ON THE MAP
-  const [markersToShowRange, setMarkersToShowRange] = useState();//MARKERS FOR SHOW, ONLY IN ACTUAL RANGE
-  const [polylinePoints, setPolylinePoints] = useState([
-    //DEFAULT POLYLINE AFTER START APP
-    [49.57997121, 18.40505999],
-    [49.58005847, 18.40509384],
-  ]);
-
+  const [forceUpdate, setForceUpdate] = useState(false); //FORCE UPDATE INFO ABOUT DATE AFTER CHANGE DATA FROM THE LIST
   const [showByOne, setShowByOne] = useState(false); //SHOW ALL/ONE BY POINTS ON THE MAP
   const [showHint, setShowHint] = useState(false); // SHOW HINT FOR DEMO
-  const [forceUpdate, setForceUpdate] = useState(false); //FORCE UPDATE INFO ABOUT DATE AFTER CHANGE DATA FROM THE LIST
+  const [loading, setLoading] = useState(true); // LOADING BTS
+
+  const [actualDate, setActualDate] = useState(""); //INFO ABOUT DATE OF ACTUAL POINT ON MAP
+  const [actualCid, setActualCid] = useState(""); //INFO ABOUT BTS CID OF ACTUAL POINT ON MAP
+  const [rangeValue, setRangeValue] = useState(0); // RANGE FOR MOVING OBJECT ON THE MAP
+  const [btsToShow, setBtsToShow] = useState(null);
+  const [markers, setMarkers] = useState([]); // ALL MARKERS FROM DATABASE
+  const [markersReduceById, setMarkersReduceById] = useState();
+  const [markersToShow, setMarkersToShow] = useState(null); //MARKERS FOR SHOW ON THE MAP
+  const [markersToShowRange, setMarkersToShowRange] = useState();//MARKERS FOR SHOW, ONLY IN ACTUAL RANGE
+  const [polylinePoints, setPolylinePoints] = useState();
+
 
   //*************  MAP POINT ICON ****************/
   const customIcon = new Icon({
@@ -142,7 +74,7 @@ function App() {
       _id: maxId + 1,
       saved: 0,
     }));
-    setMarkersId([...markersId, maxId + 1]);
+    
     setMarkers([...markers, ...updatedMarkers]);
     setMarkersToShow(updatedMarkers);
     const filteredBts = allCzBts
@@ -179,15 +111,15 @@ function App() {
         .delete(`https://pavel-tichy.cz/projects/maps/server/${id}`)
         .then((response) => {
           alert("Log úspěšně smazán.");
-          setMarkersToShow(tempMarkersToShow);
+          setMarkersToShow(null);
         })
         .catch((error) => {
           console.error("There was an error!", error);
         });
       const updatedMarkers = markers.filter((marker) => marker._id !== id);
-      const updatedMarkersId = markersId.filter((markerId) => markerId !== id);
+     
       setMarkers(updatedMarkers);
-      setMarkersId(updatedMarkersId);
+       
       //setOpen(false); //CLOSE MENU
 
       // ********* SHOW *****************
@@ -269,9 +201,8 @@ function App() {
             id: -1,
           }));
           setMarkers(markersWithNumbers);
-          const ids = response.data.map((marker) => marker._id);
-          const uniqueIds = Array.from(new Set(ids));
-          setMarkersId(uniqueIds);
+          
+         
         } else {
           console.error("Odpověď serveru není pole.");
         }
@@ -297,7 +228,7 @@ function App() {
         { result: [], seenIds: new Set() }
       ).result;
 
-      setMarkersFiltredData(filteredMarks);
+      setMarkersReduceById(filteredMarks);
     }
   }, [markers]);
 
@@ -308,6 +239,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+     
     // LOAD ALL BTS DATA FROM JSON
     const fetchData = async () => {
       setLoading(true); //  SHOW LOADING WINDOW
@@ -319,18 +251,21 @@ function App() {
   }, []);
 
   useEffect(() => {//UPDATE ACTUAL DATA ON MAP
-    let tempMarker = markersToShow.slice(rangeValue - 1, rangeValue);//SHOW POINTS BY ONE
+    let tempMarker =markersToShow && markersToShow.slice(rangeValue - 1, rangeValue);//SHOW POINTS BY ONE
     if (showByOne) {
     } else {
-      tempMarker = markersToShow.slice(0, rangeValue);//SHOW ALL ACTUAL POINTS
+      tempMarker = markersToShow && markersToShow.slice(0, rangeValue);//SHOW ALL ACTUAL POINTS
     }
 
-    const tempBts = btsToShow.filter(
+    const tempBts = btsToShow &&
+      btsToShow.filter(
       (one) =>
         one.id ===
-        (tempMarker.length > 0 ? tempMarker[tempMarker.length - 1]["CID"] : "")
+        (tempMarker && tempMarker.length > 0 ? tempMarker[tempMarker.length - 1]["CID"] : "")
     );
-    if (tempBts.length > 0 && tempMarker.length > 0) {
+ 
+
+    if ( tempBts && tempBts.length > 0 && tempMarker.length > 0) {
       setPolylinePoints([//SET POLYLINES BTS-ACTUAL POINT
         [
           tempMarker[tempMarker.length - 1]["lat"],
@@ -340,12 +275,7 @@ function App() {
       ]);
       setActualDate(tempMarker[tempMarker.length - 1]["date"]);
       setActualCid("CID: " + tempMarker[tempMarker.length - 1]["CID"]);
-    } else {
-      setPolylinePoints([
-        [49.58005847, 18.40509384],
-        [49.58005847, 18.40509384],
-      ]);
-    }
+    } 
 
     setMarkersToShowRange(tempMarker);
   }, [rangeValue, showByOne, forceUpdate]);
@@ -392,7 +322,7 @@ function App() {
               </div>
               <div className="d-flex justify-content-center  ">
                 <RangeSlider
-                  numberOfMarkers={markersToShow.length}
+                  numberOfMarkers={markersToShow ? markersToShow.length : 0}
                   onValueChange={(value) => setRangeValue(value)}
                   onClick={(value) => setShowHint(value)}
                   value={rangeValue}
@@ -442,7 +372,7 @@ function App() {
                 <div className="col-12 col-xxl-9">
                   <InputFile
                     handleMarkers={handleNewMarkers}
-                    markersData={markersFiltredData}
+                    markersData={markersReduceById}
                     handlaChange={handleChangeMarkers}
                     handleClickHint={(value) => setShowHint(value)}
                   ></InputFile>
@@ -460,72 +390,92 @@ function App() {
           {/* /ALL BUTTONS  */}
 
           {/* MAP */}
-          <MapContainer center={polylinePoints[0]} zoom={12}>
+
+          <MapContainer
+            center={
+              polylinePoints && polylinePoints.length > 0
+                ? polylinePoints[0]
+                : [49.57997121, 18.40505999]
+            }
+            zoom={12}
+          >
             <TileLayer
               attribution='@copy; <a href="https://www.openstreetmap.org '
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {markersToShowRange.map((marker) => (
-              <>
-                <Marker position={[marker.lat, marker.lon]} icon={customIcon}>
-                  <Popup>
-                    <h6>Datum: {marker.date}</h6>
-                    <h6>MCC: {String(marker.MCC_MNC).substring(0, 3)}</h6>
-                    <h6>MNC: {String(marker.MCC_MNC).substring(3, 5)}</h6>
-                    <h6>LAC: {marker.LAC}</h6>
-                    <h6>CID: {marker.CID}</h6>
-                    <h6>Typ: {marker.TYP}</h6>
-                    <h6>RSRP: {marker.RSRP} dBm</h6>
-                    <hr />
-                    <h6>Lat: {marker.lat}</h6>
-                    <h6>Lon: {marker.lon}</h6>
-                  </Popup>
-                </Marker>
-              </>
-            ))}
+            {markersToShowRange &&
+              markersToShowRange.map((marker) => (
+                <>
+                  <Marker position={[marker.lat, marker.lon]} icon={customIcon}>
+                    <Popup>
+                      <h6>Datum: {marker.date}</h6>
+                      <h6>MCC: {String(marker.MCC_MNC).substring(0, 3)}</h6>
+                      <h6>MNC: {String(marker.MCC_MNC).substring(3, 5)}</h6>
+                      <h6>LAC: {marker.LAC}</h6>
+                      <h6>CID: {marker.CID}</h6>
+                      <h6>Typ: {marker.TYP}</h6>
+                      <h6>RSRP: {marker.RSRP} dBm</h6>
+                      <hr />
+                      <h6>Lat: {marker.lat}</h6>
+                      <h6>Lon: {marker.lon}</h6>
+                    </Popup>
+                  </Marker>
+                </>
+              ))}
 
             <MarkerClusterGroup
               chunkedLoading
               iconCreateFunction={createBtsClusterIcon}
             >
-              {btsToShow.map((bts) => (
-                <>
-                  <Marker position={[bts.gps.lat, bts.gps.lon]} icon={btsIcon}>
-                    <Popup>
-                      <div style={{ maxHeight: "200px", overflowY: "scroll" }}>
-                        <h5>BTS</h5>
-                        <h6>CID:{bts.id}</h6>
-                        <h6>
-                          MCC:{" "}
-                          {String(bts.info[0][0]["MCC_MNC"]).substring(0, 3)}
-                        </h6>
-                        <h6>
-                          MNC:{" "}
-                          {String(bts.info[0][0]["MCC_MNC"]).substring(3, 5)}
-                        </h6>
-                        <h6>LAC: {bts.info[0][0]["LAC"]}</h6>
-                        <h6>Typ: {bts.info[0][0]["TYP"]}</h6>
-                        <h6>Lat: {bts.gps.lat}</h6>
-                        <h6>Lon: {bts.gps.lon}</h6>
-                        <hr />
-                        <h5>Object data</h5>
-                        {Object.values(bts.info[0]).map((info, index) => (
-                          <div key={index}>
-                            <h6>Date: {info.date}</h6>
-                            <h6>Lat: {info.lat}</h6>
-                            <h6>Lon: {info.lon}</h6>
-                            <h6>RSRP: {info.RSRP} dBm</h6>
-                            <hr />
-                          </div>
-                        ))}
-                      </div>
-                    </Popup>
-                  </Marker>
-                </>
-              ))}
+              {btsToShow &&
+                btsToShow.map((bts) => (
+                  <>
+                    <Marker
+                      position={[bts.gps.lat, bts.gps.lon]}
+                      icon={btsIcon}
+                    >
+                      <Popup>
+                        <div
+                          style={{ maxHeight: "200px", overflowY: "scroll" }}
+                        >
+                          <h5>BTS</h5>
+                          <h6>CID:{bts.id}</h6>
+                          <h6>
+                            MCC:{" "}
+                            {String(bts.info[0][0]["MCC_MNC"]).substring(0, 3)}
+                          </h6>
+                          <h6>
+                            MNC:{" "}
+                            {String(bts.info[0][0]["MCC_MNC"]).substring(3, 5)}
+                          </h6>
+                          <h6>LAC: {bts.info[0][0]["LAC"]}</h6>
+                          <h6>Typ: {bts.info[0][0]["TYP"]}</h6>
+                          <h6>Lat: {bts.gps.lat}</h6>
+                          <h6>Lon: {bts.gps.lon}</h6>
+                          <hr />
+                          <h5>Object data</h5>
+                          {Object.values(bts.info[0]).map((info, index) => (
+                            <div key={index}>
+                              <h6>Date: {info.date}</h6>
+                              <h6>Lat: {info.lat}</h6>
+                              <h6>Lon: {info.lon}</h6>
+                              <h6>RSRP: {info.RSRP} dBm</h6>
+                              <hr />
+                            </div>
+                          ))}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  </>
+                ))}
             </MarkerClusterGroup>
-            <Polyline positions={polylinePoints} pathOptions={polylineStyle} />
+            {polylinePoints && (
+              <Polyline
+                positions={polylinePoints}
+                pathOptions={polylineStyle}
+              />
+            )}
           </MapContainer>
         </div>
       )}

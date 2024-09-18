@@ -11,7 +11,7 @@ function CheckBox({ value, onValueChange, onClick }) {
     <div className="justify-content-center">
       <input
         hidden
-        class="form-check-input"
+        className="form-check-input"
         type="checkbox"
         role="switch"
         id="flexSwitchCheckChecked"
@@ -20,8 +20,8 @@ function CheckBox({ value, onValueChange, onClick }) {
         onClick={handleClick}
       ></input>
       <label
-        class="btn-success btn form-check-label w-100"
-        for="flexSwitchCheckChecked"
+        className="btn-success btn form-check-label w-100"
+        htmlFor="flexSwitchCheckChecked"
       >
         {value ? "Vícebodové zobr." : "Jednobové zobr."}
       </label>
